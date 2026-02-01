@@ -26,12 +26,13 @@
 
 Claude Context without the cloud. Semantic code search that runs 100% locally using EmbeddingGemma. No API keys, no costs, your code never leaves your machine.
 
-- 🔍 **Find code by meaning, not strings**
-- 🔒 **100% local - completely private**
-- 💰 **Zero API costs - forever free**
-- ⚡ **Fewer tokens in Claude Code and fast local searches**
+- 🔍 **Find code by meaning, not strings** - grep-like CLI for semantic search
+- 🔒 **100% local - completely private** - your code never leaves your machine
+- 💰 **Zero API costs - forever free** - no API keys needed
+- ⚡ **Fewer tokens in Claude Code** - fast local searches via CLI or MCP
+- 🖥️ **Hybrid CLI + MCP** - use from terminal or integrate with Claude Code
 
-An intelligent code search system that uses Google's EmbeddingGemma model and advanced multi-language chunking to provide semantic search capabilities across 15 file extensions and 9+ programming languages, integrated with Claude Code via MCP (Model Context Protocol).
+An intelligent code search system that uses Google's EmbeddingGemma model and advanced multi-language chunking to provide semantic search capabilities across 15 file extensions and 9+ programming languages. Use it as a **grep-like CLI tool** or integrate with Claude Code via MCP (Model Context Protocol).
 
 ## 🚧 Beta Release
 
@@ -98,13 +99,67 @@ The installer will:
 - Installs `uv` if missing and creates a project venv
 - Clones/updates `claude-context-local` in `~/.local/share/claude-context-local`
 - Installs Python dependencies with `uv sync`
+- Creates the `csearch` CLI command
 - Downloads the EmbeddingGemma model (~1.2–1.3 GB) if not already cached
 - Tries to install `faiss-gpu` if an NVIDIA GPU is detected (interactive mode only)
 - **Preserves all your indexed projects and embeddings** across updates
 
+### Alternative: pip/pipx install
+
+```bash
+# With pip
+pip install .
+
+# With pipx (recommended for CLI tools)
+pipx install .
+
+# With uv
+uv tool install .
+```
+
+After installation, the `csearch` command is available globally.
+
 ## Quick Start
 
-### 1) Register the MCP server (stdio)
+### CLI Usage (Recommended)
+
+The `csearch` command provides grep-like semantic code search:
+
+```bash
+# Index your project (first time)
+csearch index
+
+# Search for code semantically
+csearch "authentication handling"
+csearch "where is rate limiting implemented"
+csearch "database connection pooling"
+
+# Search with filters
+csearch -m 10 "error handling"           # Max 10 results
+csearch -f "*.py" "async function"       # Python files only
+csearch -l python "class definition"     # Filter by language
+csearch -t function "validate"           # Filter by chunk type
+
+# Output formats
+csearch --json "auth"                    # JSON output
+csearch -1 "config"                      # Compact (path:line only)
+csearch -v "middleware"                  # Verbose with scores
+
+# Exact and hybrid search
+csearch --exact "handleUserLogin"        # Exact text match (uses ripgrep)
+csearch --hybrid "authentication" "JWT"  # Semantic + exact filter
+
+# Other commands
+csearch status                           # Show index info
+csearch watch                            # Auto-reindex on file changes
+csearch watch --daemon                   # Background file watcher
+csearch config                           # View configuration
+csearch doctor                           # Check dependencies
+```
+
+### MCP Integration (Claude Code)
+
+#### 1) Register the MCP server (stdio)
 
 ```bash
 claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
@@ -123,7 +178,15 @@ Interact via chat inside Claude Code; no function calls or commands are required
 ## Architecture
 
 ```
-claude-context-local/
+csearch/
+├── cli/                              # CLI interface (grep-like)
+│   ├── main.py                       # Entry point and command registration
+│   ├── commands/                     # CLI commands (search, index, status, watch, etc.)
+│   └── output/                       # Output formatters (grep, JSON, compact, verbose)
+├── core/                             # Shared business logic
+│   ├── config.py                     # TOML configuration management
+│   ├── project.py                    # Project and index management
+│   └── search_engine.py              # Unified search interface
 ├── chunking/                         # Multi-language chunking (15 extensions)
 │   ├── multi_language_chunker.py     # Unified orchestrator (Python AST + tree-sitter)
 │   ├── python_ast_chunker.py         # Python-specific chunking (rich metadata)
@@ -193,6 +256,42 @@ The system uses advanced parsing to create semantically meaningful chunks across
 - Semantic tags (component, export, async, etc.)
 
 ## Configuration
+
+### CLI Configuration
+
+The CLI uses a TOML configuration file at `~/.config/csearch/config.toml`:
+
+```toml
+[general]
+storage_dir = "~/.claude_code_search"
+default_threshold = 0.4
+max_results = 20
+
+[model]
+name = "google/embeddinggemma-300m"
+device = "auto"  # auto, cuda, mps, cpu
+batch_size = 32
+
+[index]
+excluded_dirs = ["node_modules", ".venv", "__pycache__", ".git", "dist"]
+max_file_size_kb = 1024
+
+[watch]
+debounce_ms = 2000
+auto_start = false
+
+[output]
+context_lines = 0
+show_score = false
+color = "auto"  # auto, always, never
+```
+
+Manage configuration with:
+```bash
+csearch config                    # View current config
+csearch config --edit             # Open in $EDITOR
+csearch config set threshold 0.5  # Set a value
+```
 
 ### Environment Variables
 
