@@ -79,26 +79,36 @@ def clear(
     # Clear specific project
     directory = (directory or Path.cwd()).resolve()
 
+    # Get project config to check if any project data exists
+    project_manager = ProjectManager()
+    project_config = project_manager.get_project_config(directory)
+
+    # Check if any project data exists (even partial)
+    has_project_data = project_config.storage_dir.exists()
     status = engine.get_status(directory)
-    if status is None:
-        click.echo(colors.warning(f"Project not indexed: {directory}"))
+
+    if not has_project_data:
+        click.echo(colors.warning(f"No project data found for: {directory}"))
         return
 
     if not force:
-        name = status.get("project_name", directory.name)
-        files = status.get("files_indexed", 0)
-        chunks = status.get("chunks_indexed", 0)
-
-        click.echo(f"Project: {colors.name(name)}")
-        click.echo(f"Files: {files}, Chunks: {chunks}")
+        if status:
+            name = status.get("project_name", directory.name)
+            files = status.get("files_indexed", 0)
+            chunks = status.get("chunks_indexed", 0)
+            click.echo(f"Project: {colors.name(name)}")
+            click.echo(f"Files: {files}, Chunks: {chunks}")
+        else:
+            click.echo(f"Project: {colors.name(directory.name)}")
+            click.echo(colors.warning("(partially indexed or corrupted)"))
         click.echo()
 
-        if not click.confirm(colors.warning("Delete this index?")):
+        if not click.confirm(colors.warning("Delete this project data?")):
             click.echo("Aborted.")
             return
 
     if engine.clear(directory):
-        click.echo(colors.success("Index cleared."))
+        click.echo(colors.success("Project data cleared."))
     else:
-        click.echo(colors.error("Failed to clear index."), err=True)
+        click.echo(colors.error("Failed to clear project data."), err=True)
         sys.exit(1)

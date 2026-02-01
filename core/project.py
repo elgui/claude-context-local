@@ -26,6 +26,7 @@ class ProjectInfo:
     index_size_bytes: int = 0
     watcher_running: bool = False
     watcher_pid: Optional[int] = None
+    is_fully_indexed: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -41,6 +42,7 @@ class ProjectInfo:
             "index_size_bytes": self.index_size_bytes,
             "watcher_running": self.watcher_running,
             "watcher_pid": self.watcher_pid,
+            "is_fully_indexed": self.is_fully_indexed,
         }
 
 
@@ -137,10 +139,13 @@ class ProjectManager:
                     data["chunks_indexed"] = stats.get("total_chunks", 0)
                     data["languages"] = stats.get("chunk_types", {})
 
-            # Calculate index size
+            # Calculate index size and check if fully indexed
             index_file = project_config.index_dir / "code.index"
             if index_file.exists():
                 data["index_size_bytes"] = index_file.stat().st_size
+                data["is_fully_indexed"] = True
+            else:
+                data["is_fully_indexed"] = False
 
             # Check watcher status
             data["watcher_running"] = False

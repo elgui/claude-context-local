@@ -151,40 +151,42 @@ def search(
     # Determine project path
     project_path = project or Path.cwd()
 
-    # Check if project is indexed
-    status = engine.get_status(project_path)
-    if status is None:
-        click.echo(
-            f"Project not indexed: {project_path}\n"
-            f"Run 'csearch index' first to index the project.",
-            err=True
-        )
-        sys.exit(1)
-
-    # Perform search based on mode
+    # Exact search doesn't require indexing
     if exact:
         results = engine.search_exact(
             pattern=query,
             project_path=project_path,
             file_pattern=file_pattern,
         )
-    elif hybrid:
-        results = engine.search_hybrid(
-            semantic_query=query,
-            exact_pattern=hybrid,
-            project_path=project_path,
-            max_results=max_results,
-        )
     else:
-        results = engine.search(
-            query=query,
-            project_path=project_path,
-            max_results=max_results,
-            threshold=threshold,
-            file_pattern=file_pattern,
-            language=language,
-            chunk_type=chunk_type,
-        )
+        # Check if project is indexed for semantic search
+        status = engine.get_status(project_path)
+        if status is None:
+            click.echo(
+                f"Project not indexed: {project_path}\n"
+                f"Run 'csearch index' first to index the project.",
+                err=True
+            )
+            sys.exit(1)
+
+        # Perform search based on mode
+        if hybrid:
+            results = engine.search_hybrid(
+                semantic_query=query,
+                exact_pattern=hybrid,
+                project_path=project_path,
+                max_results=max_results,
+            )
+        else:
+            results = engine.search(
+                query=query,
+                project_path=project_path,
+                max_results=max_results,
+                threshold=threshold,
+                file_pattern=file_pattern,
+                language=language,
+                chunk_type=chunk_type,
+            )
 
     # Sort results if needed
     if sort == "path":

@@ -85,12 +85,18 @@ def status(
             files = project.files_indexed or 0
             chunks = project.chunks_indexed or 0
 
-            # Format watcher status
-            watcher_status = ""
+            # Format status indicators
+            status_tags = []
             if project.watcher_running:
-                watcher_status = colors.success(" [watching]")
+                status_tags.append(colors.success("[watching]"))
+            if not project.is_fully_indexed:
+                status_tags.append(colors.warning("[incomplete]"))
 
-            click.echo(f"  {colors.name(name)}{watcher_status}")
+            status_str = " ".join(status_tags)
+            if status_str:
+                status_str = " " + status_str
+
+            click.echo(f"  {colors.name(name)}{status_str}")
             click.echo(f"    Path: {colors.file_path(path)}")
             click.echo(f"    Files: {files}, Chunks: {chunks}")
             if project.last_indexed:
