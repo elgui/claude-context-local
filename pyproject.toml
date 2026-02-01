@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-context-local"
+name = "csearch"
 version = "0.1.0"
-description = "Local semantic code search for Claude Code (MCP) using EmbeddingGemma, FAISS, and AST/tree-sitter chunking. 100% local embeddings and indexing."
+description = "Grep-like semantic code search CLI with MCP integration. 100% local embeddings using EmbeddingGemma, FAISS, and AST/tree-sitter chunking."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -17,6 +17,8 @@ maintainers = [
 keywords = [
     "semantic-search",
     "code-search",
+    "cli",
+    "grep",
     "embeddings",
     "faiss",
     "mcp",
@@ -31,10 +33,6 @@ dependencies = [
     "fastmcp>=2.12.2",
     "huggingface-hub>=0.34.4",
     "mcp>=1.13.1",
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.1.0",
-    "pytest-cov>=6.2.1",
-    "pytest-mock>=3.14.1",
     "rich>=14.1.0",
     "sentence-transformers>=5.1.0",
     "sqlitedict>=2.1.0",
@@ -50,8 +48,8 @@ dependencies = [
     "tree-sitter-rust>=0.24.0",
     "tree-sitter-svelte>=1.0.2",
     "tree-sitter-typescript>=0.23.2",
+    "watchdog>=4.0.0",
 ]
-
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
@@ -59,7 +57,22 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries",
+    "Environment :: Console",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+]
+
+[project.scripts]
+csearch = "cli.main:main"
+
+[project.entry-points."mcp.servers"]
+csearch = "mcp_server.server:main"
 
 [project.urls]
 Homepage = "https://github.com/FarhanAliRaza/claude-context-local"
@@ -68,4 +81,4 @@ Documentation = "https://github.com/FarhanAliRaza/claude-context-local#readme"
 Issues = "https://github.com/FarhanAliRaza/claude-context-local/issues"
 
 [tool.setuptools.packages.find]
-include = ["claude_embedding_search*"]
+include = ["cli*", "core*", "chunking*", "embeddings*", "search*", "merkle*", "mcp_server*"]
