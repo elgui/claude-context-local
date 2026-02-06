@@ -121,6 +121,22 @@ After installation, the `csearch` command is available globally.
 
 ## Quick Start
 
+### For Existing Claude Code Users
+
+If you already have Claude Code and want to add local semantic search:
+
+```bash
+# 1. Install csearch (one command)
+curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
+
+# 2. Add the MCP server to Claude Code
+claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
+
+# 3. Restart Claude Code and ask it to "index this codebase"
+```
+
+That's it! Claude Code will now use local semantic search instead of sending your code to the cloud.
+
 ### CLI Usage (Recommended)
 
 The `csearch` command provides grep-like semantic code search:
@@ -159,21 +175,76 @@ csearch doctor                           # Check dependencies
 
 ### MCP Integration (Claude Code)
 
-#### 1) Register the MCP server (stdio)
+If you already have Claude Code installed and want to add semantic code search, follow these steps:
+
+#### 1) Register the MCP server
+
+**If you installed via the one-liner script (recommended):**
 
 ```bash
+# Global (available in all projects)
+claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
+
+# Or project-specific (only in current directory)
+claude mcp add code-search -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
+```
+
+**If you installed via pip/pipx/uv or cloned manually:**
+
+```bash
+# Replace /path/to/claude-context-local with your actual installation path
+claude mcp add code-search --scope user -- uv run --directory /path/to/claude-context-local python mcp_server/server.py
+```
+
+#### 2) Verify the MCP server is registered
+
+```bash
+claude mcp list
+```
+
+You should see `code-search` in the list of registered servers.
+
+#### 3) Index your codebase
+
+Open Claude Code in your project and say:
+
+> "Index this codebase"
+
+Or use the CLI first:
+
+```bash
+csearch index /path/to/your/project
+```
+
+#### 4) Search in Claude Code
+
+Once indexed, simply ask Claude Code questions like:
+
+> "Find the authentication handling code"
+> "Where is rate limiting implemented?"
+> "Show me the database connection logic"
+
+Claude will use the local semantic search automatically.
+
+#### Updating or Removing the MCP Server
+
+```bash
+# Remove existing server
+claude mcp remove code-search
+
+# Re-add with updated path (after update)
 claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
 ```
 
-Then open Claude Code; the server will run in stdio mode inside the `uv` environment.
+#### MCP Troubleshooting
 
-### 2) Index your codebase
+If the MCP server isn't working:
 
-Open Claude Code and say: index this codebase. No manual commands needed.
-
-### 3) Use in Claude Code
-
-Interact via chat inside Claude Code; no function calls or commands are required.
+1. **Check registration**: `claude mcp list` should show `code-search`
+2. **Check logs**: Look for errors in Claude Code's MCP output
+3. **Verify path**: Ensure the directory path in `claude mcp add` is correct
+4. **Test manually**: Try `uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py` to see startup errors
+5. **Re-register**: Remove and re-add the server after updates
 
 ## Architecture
 
@@ -383,14 +454,31 @@ Tips:
 
 ## Troubleshooting
 
+### Quick Diagnostics
+
+Run the built-in doctor command to check your setup:
+
+```bash
+csearch doctor
+```
+
+This verifies Python version, dependencies, model availability, and GPU support.
+
 ### Common Issues
 
 1. **Import errors**: Ensure all dependencies are installed with `uv sync`
-2. **Model download fails**: Check internet connection and disk space
-3. **Memory issues**: Reduce batch size in indexing script
-4. **No search results**: Verify the codebase was indexed successfully
+2. **Model download fails**: Check internet connection and disk space (~1.2GB needed)
+3. **Memory issues**: Reduce batch size in config: `csearch config set batch_size 16`
+4. **No search results**: Verify the codebase was indexed: `csearch status`
 5. **FAISS GPU not used**: Ensure `nvidia-smi` is available and CUDA drivers are installed; re-run installer to pick `faiss-gpu-cu12`/`cu11`.
 6. **Force offline**: We auto-detect a local cache and prefer offline loads; you can also set `HF_HUB_OFFLINE=1`.
+
+### MCP Server Issues
+
+1. **MCP server not found**: Re-register with `claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py`
+2. **Tools not appearing**: Restart Claude Code after adding the MCP server
+3. **Connection errors**: Test the server manually: `uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py`
+4. **Wrong index used**: Each project has its own index; run `csearch index` in the correct directory
 
 ### Ignored directories (for speed and noise reduction)
 
